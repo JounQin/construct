@@ -25,7 +25,9 @@ const FORM = 'Review subject: <base>'
 // Vendored files whose content is omitted: exact repository-relative path -> sha256 of the blob.
 // Changing the vendored file means changing this pin, and that change is shown to the lenses.
 const OMITTED_SHA256 = {
-  'plugins/construct/hooks/vendor/mvdan-sh.cjs': '2b613c6ddf9ff8ba530e3d2e30a1c34a7b146abafa8408e18a9b8cdd771d0f2c',
+  'plugins/construct/hooks/vendor/sh-syntax/lib/index.cjs': '0efc5a2b5377464611b07da2cfd80ba58cec2cc65eb29788d114e19b788baca4',
+  'plugins/construct/hooks/vendor/sh-syntax/vendors/wasm_exec.cjs': '0c949f4996f9a89698e4b5c586de32249c3b69b7baadb64d220073cc04acba14',
+  'plugins/construct/hooks/vendor/sh-syntax/main.wasm': '5f2aeca075646f3e257c83a1e98b7b7f80edb315339178bf3c3fdaddd34a7ea8',
 }
 
 const decide = (permissionDecision, extra) =>
