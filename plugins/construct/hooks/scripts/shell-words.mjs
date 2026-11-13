@@ -61,18 +61,6 @@ export function splitCommands(input) {
   return result
 }
 
-function walkTree(value, enter, exit) {
-  if (Array.isArray(value)) {
-    for (const child of value) walkTree(child, enter, exit)
-    return
-  }
-  if (value == null || typeof value !== 'object') return
-  const typed = typeof value.type === 'string'
-  if (typed) enter(value)
-  for (const key of Object.keys(value)) walkTree(value[key], enter, exit)
-  if (typed) exit(value)
-}
-
 function readCommands(input) {
   const sh = parser()
   const file = sh.parse(input)
@@ -101,38 +89,41 @@ function readCommands(input) {
   let parens = ''
   let pipeline = null
   let pipeDepth = 0
-  walkTree(file, (node) => {
-    const type = node.type
-    stack.push(type === 'BinaryCmd' && PIPES.has(node.op) ? 'Pipe' : type)
-    if (type === 'Subshell' || type === 'CmdSubst' || type === 'ProcSubst') parens += '('
-    else if (type === 'BinaryCmd' && PIPES.has(node.op)) {
-      if (pipeDepth++ === 0) pipeline = {}
-    } else if (type === 'Stmt') {
-      const words = []
-      const cmdType = node.cmd === null ? null : node.cmd.type
-      if (cmdType === 'CallExpr') words.push(...node.cmd.assigns.map(assign), ...node.cmd.args.map((w) => word(w)))
-      else if (cmdType === 'DeclClause') {
-        const name = node.cmd.variant?.value ?? ''
-        words.push({ t: name, r: false, h: false, s: name }, ...node.cmd.args.map(assign))
+  sh.walk(file, {
+    enter(node) {
+      const type = node.type
+      stack.push(type === 'BinaryCmd' && PIPES.has(node.op) ? 'Pipe' : type)
+      if (type === 'Subshell' || type === 'CmdSubst' || type === 'ProcSubst') parens += '('
+      else if (type === 'BinaryCmd' && PIPES.has(node.op)) {
+        if (pipeDepth++ === 0) pipeline = {}
+      } else if (type === 'Stmt') {
+        const words = []
+        const cmdType = node.cmd === null ? null : node.cmd.type
+        if (cmdType === 'CallExpr') words.push(...node.cmd.assigns.map(assign), ...node.cmd.args.map((w) => word(w)))
+        else if (cmdType === 'DeclClause') {
+          const name = node.cmd.variant?.value ?? ''
+          words.push({ t: name, r: false, h: false, s: name }, ...node.cmd.args.map(assign))
+        }
+        const heredocs = []
+        for (const redir of node.redirs) {
+          if (redir.hdoc) heredocs.push(redir.hdoc.parts.every((p) => p.type === 'Lit') ? redir.hdoc.parts.map((p) => p.value).join('') : raw(redir.hdoc).replace(/\n?[ \t]*[^\n]*$/, '\n'))
+          if (redir.op === sh.RedirOperator.WordHdoc) words.push(word(redir.word, { h: true }))
+          else words.push(word(redir.word, { r: true }))
+        }
+        Object.assign(words, { parens: words.length > 0 ? parens : '', heredocs, pipeline, simple: cmdType === 'CallExpr', parent: stmts.at(-1) ?? null })
+        stmts.push(words)
+        if (words.length > 0) {
+          parens = ''
+          commands.push(words)
+        }
       }
-      const heredocs = []
-      for (const redir of node.redirs) {
-        if (redir.hdoc) heredocs.push(redir.hdoc.parts.every((p) => p.type === 'Lit') ? redir.hdoc.parts.map((p) => p.value).join('') : raw(redir.hdoc).replace(/\n?[ \t]*[^\n]*$/, '\n'))
-        if (redir.op === sh.RedirOperator.WordHdoc) words.push(word(redir.word, { h: true }))
-        else words.push(word(redir.word, { r: true }))
-      }
-      Object.assign(words, { parens: words.length > 0 ? parens : '', heredocs, pipeline, simple: cmdType === 'CallExpr', parent: stmts.at(-1) ?? null })
-      stmts.push(words)
-      if (words.length > 0) {
-        parens = ''
-        commands.push(words)
-      }
+    },
+    exit(node) {
+      const type = stack.pop()
+      if (type === 'Stmt') stmts.pop()
+      if (type === 'Subshell' || type === 'CmdSubst' || type === 'ProcSubst') parens += ')'
+      else if (type === 'Pipe' && --pipeDepth === 0) pipeline = null
     }
-  }, (node) => {
-    const type = stack.pop()
-    if (type === 'Stmt') stmts.pop()
-    if (type === 'Subshell' || type === 'CmdSubst' || type === 'ProcSubst') parens += ')'
-    else if (type === 'Pipe' && --pipeDepth === 0) pipeline = null
   })
   return commands
 }
