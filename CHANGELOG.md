@@ -6,7 +6,7 @@ Notable changes per release. Versions follow [Semantic Versioning](https://semve
 
 ### Changed
 
-- The shell reader now uses sh-syntax 0.8.3 (mvdan/sh v3.14.1 compiled to standard Go WASM) instead of the 2022 mvdan-sh 0.10.1 GopherJS build. Parser fixes include `$foo#bar` no longer losing `#bar`, plus newer Bash syntax. The vendor directory, hashes, NOTICE, and licenses were updated; `shell-words.mjs` walks the JS AST and uses the exported operator constants.
+- The shell reader now uses sh-syntax 0.8.4 (mvdan/sh v3.14.1 compiled to standard Go WASM) instead of the 2022 mvdan-sh 0.10.1 GopherJS build. Parser fixes include `$foo#bar` no longer losing `#bar`, plus newer Bash syntax. The vendor directory, hashes, NOTICE, and licenses were updated; `shell-words.mjs` walks the JS AST and uses the exported operator constants.
 
 ## 15.1.0
 

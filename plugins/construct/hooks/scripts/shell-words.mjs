@@ -1,5 +1,5 @@
 // Shell parsing and command unwrapping for the publication gate, the command guard, and the review
-// store guard. The shell grammar is read by sh-syntax 0.8.3 (mvdan/sh v3.14.1 compiled to standard
+// store guard. The shell grammar is read by sh-syntax 0.8.4 (mvdan/sh v3.14.1 compiled to standard
 // Go WASM, MIT, vendored unmodified as ../vendor/sh-syntax, see its LICENSE), so a command
 // hidden inside `$( )`, `case`, a heredoc, `${a:-'})'}`, or a quoted spelling is found as bash finds it.
 // Text the parser rejects throws ShellParseError: bash can still run the part before a syntax
@@ -17,7 +17,7 @@ export class ShellParseError extends Error {}
 
 // The 3.8 MB parser loads on the first parse only.
 let syntax
-const parser = () => (syntax ??= createRequire(import.meta.url)('../vendor/sh-syntax/lib/index.cjs'))
+const parser = () => (syntax ??= createRequire(import.meta.url)('../vendor/sh-syntax/lib/sync/index.cjs'))
 
 // ANSI-C quoting: $'\x67it' is the word git.
 const ANSI = { a: '\x07', b: '\b', e: '\x1b', E: '\x1b', f: '\f', n: '\n', r: '\r', t: '\t', v: '\v', '\\': '\\', "'": "'", '"': '"', '?': '?' }
@@ -75,7 +75,7 @@ function walkTree(value, enter, exit) {
 
 function readCommands(input) {
   const sh = parser()
-  const file = sh.parseSync(input)
+  const file = sh.parse(input)
   const bytes = Buffer.from(input) // node offsets are UTF-8 byte offsets
   const raw = (node) => bytes.subarray(node.start, node.end).toString()
   const part = (p, quoted) => {
